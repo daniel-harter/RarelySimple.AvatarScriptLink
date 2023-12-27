@@ -17,17 +17,20 @@ namespace RarelySimple.AvatarScriptLink.Helpers
         public static string SerializeObject<T>(T objectToSerialize)
         {
             if (objectToSerialize == null)
-                throw new ArgumentNullException(nameof(objectToSerialize), GetLocalizedString("parameterCannotBeNull", CultureInfo.CurrentCulture));
+                throw new ArgumentNullException(nameof(objectToSerialize),
+                    GetLocalizedString("parameterCannotBeNull", CultureInfo.CurrentCulture));
 
-            try 
-            { 
-                return SerializeObjectToXmlString<T>(objectToSerialize); 
-            }
-            catch 
+            try
             {
-                throw new ArgumentException(GetLocalizedString("objectCannotBeSerializedXmlOrJson", CultureInfo.CurrentCulture));
+                return SerializeObjectToXmlString<T>(objectToSerialize);
+            }
+            catch
+            {
+                throw new ArgumentException(GetLocalizedString("objectCannotBeSerializedXmlOrJson",
+                    CultureInfo.CurrentCulture));
             }
         }
+
         /// <summary>
         /// Serializes an object as Json.
         /// </summary>
@@ -37,7 +40,8 @@ namespace RarelySimple.AvatarScriptLink.Helpers
         public static string SerializeObjectToJsonString<T>(T objectToSerialize)
         {
             if (objectToSerialize == null)
-                throw new ArgumentNullException(nameof(objectToSerialize), GetLocalizedString("parameterCannotBeNull", CultureInfo.CurrentCulture));
+                throw new ArgumentNullException(nameof(objectToSerialize),
+                    GetLocalizedString("parameterCannotBeNull", CultureInfo.CurrentCulture));
 
             try
             {
@@ -45,9 +49,11 @@ namespace RarelySimple.AvatarScriptLink.Helpers
             }
             catch (Exception ex)
             {
-                throw new ArgumentException(GetLocalizedString("objectCannotBeSerializedJson", CultureInfo.CurrentCulture), ex.InnerException);
+                throw new ArgumentException(
+                    GetLocalizedString("objectCannotBeSerializedJson", CultureInfo.CurrentCulture), ex.InnerException);
             }
         }
+
         /// <summary>
         /// Serializes an object as Xml.
         /// </summary>
@@ -57,20 +63,21 @@ namespace RarelySimple.AvatarScriptLink.Helpers
         public static string SerializeObjectToXmlString<T>(T objectToSerialize)
         {
             if (objectToSerialize == null)
-                throw new ArgumentNullException(nameof(objectToSerialize), GetLocalizedString("parameterCannotBeNull", CultureInfo.CurrentCulture));
+                throw new ArgumentNullException(nameof(objectToSerialize),
+                    GetLocalizedString("parameterCannotBeNull", CultureInfo.CurrentCulture));
 
             try
             {
-                using (StringWriter stringWriter = new StringWriter())
-                {
-                    var serializer = new XmlSerializer(typeof(T));
-                    serializer.Serialize(stringWriter, objectToSerialize);
-                    return stringWriter.ToString();
-                }
+                using StringWriter stringWriter = new StringWriter();
+                var serializer = new XmlSerializer(typeof(T));
+                serializer.Serialize(stringWriter, objectToSerialize);
+                return stringWriter.ToString();
             }
             catch (Exception ex)
             {
-                throw new ArgumentException(GetLocalizedString("objectCannotBeSerializedXmlOrJson", CultureInfo.CurrentCulture), ex.InnerException);
+                throw new ArgumentException(
+                    GetLocalizedString("objectCannotBeSerializedXmlOrJson", CultureInfo.CurrentCulture),
+                    ex.InnerException);
             }
         }
     }

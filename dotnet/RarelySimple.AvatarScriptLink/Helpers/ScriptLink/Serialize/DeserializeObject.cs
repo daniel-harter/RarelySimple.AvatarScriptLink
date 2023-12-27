@@ -60,14 +60,10 @@ namespace RarelySimple.AvatarScriptLink.Helpers
 
             try
             {
-                using (var stringReader = new StringReader(xml))
-                {
-                    var serializer = new XmlSerializer(typeof(T));
-                    XmlReader xmlReader = XmlReader.Create(stringReader);
-                    var response = (T)serializer.Deserialize(xmlReader);
-                    xmlReader.Dispose();
-                    return response;
-                }
+                using var stringReader = new StringReader(xml);
+                var serializer = new XmlSerializer(typeof(T));
+                using XmlReader xmlReader = XmlReader.Create(stringReader);
+                return (T)serializer.Deserialize(xmlReader);
             }
             catch
             {
