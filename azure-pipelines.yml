@@ -4,54 +4,111 @@
 # Add steps that publish symbols, save build artifacts, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
 
-trigger:
-- main
-
-pool:
-  vmImage: 'windows-latest'
+#trigger:
+#- main
+#
+#pool:
+#  vmImage: 'windows-latest'
+#
+#variables:
+#  solution: '**/*.sln'
+#  buildPlatform: 'Any CPU'
+#  buildConfiguration: 'Release'
+#
+#steps:
+#- task: NuGetToolInstaller@1
+#
+#- task: NuGetCommand@2
+#  inputs:
+#    command: 'restore'
+#    restoreSolution: '$(solution)'
+#
+#- task: VSBuild@1
+#  inputs:
+#    solution: '$(solution)'
+#    msbuildArgs: '/t:restore;build /p:PackageOutputPath=$(Build.ArtifactStagingDirectory)'
+#    platform: '$(buildPlatform)'
+#    configuration: '$(buildConfiguration)'
+#
+#- task: VisualStudioTestPlatformInstaller@1
+#  inputs:
+#    versionSelector: 'SpecificVersion'
+#    testPlatformVersion: '17.2.0'
+#
+#- task: VSTest@2
+#  inputs:
+#    platform: '$(buildPlatform)'
+#    configuration: '$(buildConfiguration)'
+#    testSelector: 'testAssemblies'
+#    testAssemblyVer2: |
+#      **\*test*.dll
+#      !**\*TestAdapter.dll
+#      !**\obj\**
+#    searchFolder: '$(System.DefaultWorkingDirectory)'
+#    codeCoverageEnabled: true
+#    vsTestVersion: 'toolsInstaller'
+#    failOnMinTestsNotRun: true
+#    minimumExpectedTests: '1'
+#
+#- task: PublishBuildArtifacts@1
+#  inputs:
+#    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+#    ArtifactName: 'drop'
+#    publishLocation: 'Container'
 
 variables:
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
-  buildConfiguration: 'Release'
+  Major: '1'
+  Minor: '0'
+  Patch: $(Build.BuildId)
+  NUGET.PLUGIN.HANDSHAKE.TIMEOUT.IN.SECONDS: 20
+  NUGET.PLUGIN.REQUEST.TIMEOUT.IN.SECONDS: 20
 
-steps:
-- task: NuGetToolInstaller@1
+name: '$(Major).$(Minor).$(Build.BuildId)'
 
-- task: NuGetCommand@2
-  inputs:
-    command: 'restore'
-    restoreSolution: '$(solution)'
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
+      - task/*
 
-- task: VSBuild@1
-  inputs:
-    solution: '$(solution)'
-    msbuildArgs: '/t:restore;build /p:PackageOutputPath=$(Build.ArtifactStagingDirectory)'
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
-
-- task: VisualStudioTestPlatformInstaller@1
-  inputs:
-    versionSelector: 'SpecificVersion'
-    testPlatformVersion: '17.2.0'
-
-- task: VSTest@2
-  inputs:
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
-    testSelector: 'testAssemblies'
-    testAssemblyVer2: |
-      **\*test*.dll
-      !**\*TestAdapter.dll
-      !**\obj\**
-    searchFolder: '$(System.DefaultWorkingDirectory)'
-    codeCoverageEnabled: true
-    vsTestVersion: 'toolsInstaller'
-    failOnMinTestsNotRun: true
-    minimumExpectedTests: '1'
-
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-    ArtifactName: 'drop'
-    publishLocation: 'Container'
+stages:
+  - stage: ci_stage
+    displayName: Continuous Integration Stage
+    jobs:
+      - job: ci_job
+        displayName: Continuous Integration
+        pool:
+          vmImage: windows-latest
+        steps:
+          - task: UseDotNet@2
+            inputs:
+              version: '8.0.x'
+              includePreviewVersions: false
+          - task: NuGetAuthenticate@0
+            displayName: 'NuGet Authenticate'
+          - task: NuGetToolInstaller@1
+            displayName: 'Update NuGet'
+            inputs:
+              checkLatest: true
+          - task: DotNetCoreCLI@2
+            inputs:
+              command: pack
+              packagesToPack: '**/RarelySimple.AvatarScriptLink.csproj'
+              packDestination: '$(Build.ArtifactStagingDirectory)'
+              ${{ if eq(variables['Build.SourceBranchName'], 'main') }}:
+                # buildNumber == 'name' field
+                versioningScheme: 'byBuildNumber'
+              ${{ else }}:
+                versioningScheme: 'byPrereleaseNumber'
+                majorVersion: '$(Major)'
+                minorVersion: '$(Minor)'
+                # I can't use the revision number from 'name'. Revision number syntax/value is only valid in `name` field
+                patchVersion: '$(Patch)'
+          - task: NuGetCommand@2
+            displayName: 'NuGet push'
+            inputs:
+              command: push
+              packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+              publishVstsFeed: 'ScriptlinkNew/mhcd-dev'
+              allowPackageConflicts: true
